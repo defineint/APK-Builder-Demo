@@ -25,7 +25,7 @@
 - **核心框架**：Python 3.10+ / FastAPI
 - **非同步與併發處理**：
   - 透過 `asyncio` 實作非同步任務引擎，並**支援多使用者並行請求 (Concurrency)**。每個建置任務會被放入獨立的 Task Queue，並透過 UUID 追蹤進度，打破傳統單一 Queue 的阻塞瓶頸。
-- **AI 整合**：整合 OpenAI API，並相容於本地 Llama-3 / Grok-1 模型，負責系統核心的「自然語言轉藍圖」及「程式碼生成」。
+- **AI 整合**：整合 OpenAI API，並相容於本地模型，負責系統核心的「自然語言轉藍圖」及「程式碼生成」。
 - **自動化建置工具**：
   - **Android SDK** & **Gradle**：動態建立專案並執行 APK 編譯。特別配置了 **共用 Gradle Cache (`GRADLE_USER_HOME`)**，避免每個專案重複下載肥大的依賴檔案，大幅提升編譯速度與節省伺服器 (Docker) 磁碟空間。
   - **ktlint**：整合 Kotlin 代碼格式化與語法自動修復。
