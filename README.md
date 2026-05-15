@@ -118,7 +118,7 @@ graph TD
 
 - **Chat Routes & Service**：負責接收多併發請求，利用 Async Queue 派發任務，並透過 SSE/WebSocket 即時回傳進度 (`[DONE]`, `[ERROR]`)。
 - **Orchestrator Service (編排者)**：將自然語言轉化為結構化 JSON 藍圖。
-- **QA & Parser (解析與修正)**：實作 `ktlint` 與正則表達式，自動提取程式碼並修復錯誤，同時產生 JUnit 測試代碼 (TDD 流程)。
+- **QA & Parser (解析與修正)**：實作 `ktlint` 與正規表達式，自動提取程式碼並修復錯誤，同時產生 JUnit 測試代碼 (TDD 流程)。
 - **APK Builder (建置引擎)**：驅動整體生成流程（初始化 -> 編譯循環 -> 產出 APK）。並支援 **純編譯模式**，可直接從資料庫載入既有代碼跳過 LLM 階段。
 - **Cleanup & Storage Service**：負責本機與雲端的雙重檔案生命週期管理，維持系統長效運作。
 
