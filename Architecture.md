@@ -2,20 +2,19 @@
 
 ```mermaid
 graph TD
-    %% 使用者層
+    %% === 使用者與前端層 ===
     User((使用者)) -->|自然語言描述需求| FlutterUI[前端介面<br>Flutter / Dart]
 
-    %% 前端應用
     subgraph Frontend [前端應用 Frontend]
         FlutterUI
-        API_Layer[API 通訊層<br>長效輪詢 / onUpdate 回呼]
-        Auth_Layer[身分驗證層<br>Deep Link 攔截]
+        API_Layer[API 通訊層<br>長效輪詢 Polling / WebSocket / SSE 即時推播]
+        Auth_Layer[身分驗證層<br>Windows Deep Link 攔截 / 外部 OAuth]
         
         FlutterUI <--> API_Layer
         FlutterUI <--> Auth_Layer
     end
 
-	%% === 後端 API 與任務路由 ===
+    %% === 後端 API 與任務路由 ===
     API_Layer -->|1. 新對話建置請求<br>2. 查詢任務進度| ChatRoutes[API & Task Queue<br>FastAPI 非同步佇列 / Ngrok 公網穿透]
     API_Layer -->|3. 觸發過期重建| RebuildService[Skip-LLM 重建引擎<br>跳過 AI，直接讀取快取代碼]
 
@@ -65,22 +64,21 @@ graph TD
         GC[Cleanup Service<br>非同步全自動資源回收]
     end
 
-    %% Supabase 服務
-    Auth_Layer <-->|OAuth2 / Email| Auth[Supabase Auth]
+    %% === BaaS 服務 ===
+    Auth_Layer <-->|認證與 Email 授權| Auth[Supabase Auth]
     
     subgraph BaaS [BaaS 服務 Supabase]
         Auth
-        DB[(PostgreSQL<br>對話紀錄/藍圖/原始碼)]
-        Storage[(Supabase Storage<br>Bucket: apk-outputs)]
+        DB[(PostgreSQL 資料庫<br>對話紀錄 / 代碼快取 / JSON 藍圖)]
+        Storage[(S3 Storage 儲存桶<br>apk-outputs)]
     end
 
-    %% 跨層資料流動
-    ChatRoutes <-->|讀寫狀態| DB
-    Gradle -->|上傳打包完成的 APK| Storage
+    %% === 跨層資料流動 ===
+    ChatRoutes <-->|讀寫任務狀態/歷史脈絡| DB
+    RebuildService <-->|撈取歷史 kotlin_code| DB
+    APK_Output -->|上傳編譯成果| Storage
     Storage -.->|產生具時效性下載連結| API_Layer
     
-    %% 回收機制作用範圍
-    GC -.->|刪除雲端過期檔案| Storage
-    GC -.->|清除閒置 12 小時工作區| Gradle
-    GC -.->|清理 24 小時暫存代碼| QAParser
-```
+    %% === 回收機制作用範圍 ===
+    GC -.->|定期清除閒置 12 小時的 Gradle 工作區| BuilderPipeline
+    GC -.->|刪除雲端過期 APK 釋放空間| Storage
