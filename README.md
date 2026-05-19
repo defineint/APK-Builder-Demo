@@ -29,10 +29,28 @@ graph TD
     subgraph Backend [後端引擎 Backend]
         ChatRoutes --> Orchestrator[Orchestrator Service 編排者<br>自然語言轉 JSON 藍圖]
         Orchestrator <--> LLM{OpenAI / 本地模型}
-        Orchestrator --> QAParser[QA & Parser 解析與修正<br>正則清洗 / ktlint 自動修復]
-        QAParser --> Builder[APK Builder 建置引擎]
         
-        Builder <-->|純編譯模式/自動修復循環| Gradle[Android SDK & Gradle<br>共用 Cache / ProGuard 防護]
+        %% QA & Parser 品質驗證管線 (循序三階段)
+        subgraph QAPipeline [QA & Parser 品質驗證管線]
+            direction TB
+            Step1_StaticClean[1. 靜態語法清洗<br>Regex 攔截危險注入 / ktlint 毫秒修復]
+            Step2_ErrorExtract[2. 錯誤萃取與迭代修復<br>精萃 Fatal Error / 限制 5 次 LLM 迭代]
+            Step3_TDD[3. TDD 邏輯測試<br>強制 JUnit 測試 / 阻斷無效邏輯]
+            
+            Step1_StaticClean --> Step2_ErrorExtract
+            Step2_ErrorExtract --> Step3_TDD
+        end
+        
+        %% 流程串接
+        Orchestrator -->|產出初步邏輯代碼| Step1_StaticClean
+        Step2_ErrorExtract -.->|萃取核心錯誤進行二次 Prompt 注入| LLM
+        Step2_ErrorExtract <-->|嘗試編譯抓錯| Gradle[Android SDK & Gradle<br>共用 Cache / ProGuard 防護]
+        
+        UIGenerator[UI 程式碼生成<br>Compose 介面撰寫與組裝]
+        Step3_TDD -->|邏輯層全數通過| UIGenerator
+        
+        UIGenerator --> Builder[APK Builder 建置引擎]
+        Builder <-->|純編譯模式/最終打包| Gradle
         
         GC[Cleanup & Storage Service<br>全自動資源回收機制]
     end
@@ -54,7 +72,6 @@ graph TD
     %% 回收機制作用範圍
     GC -.->|刪除雲端過期檔案| Storage
     GC -.->|清除閒置 12 小時工作區| Gradle
-    GC -.->|清理 24 小時暫存代碼| QAParser
 ```
 
 ## 系統架構與技術棧 (Tech Stack)
