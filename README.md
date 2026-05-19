@@ -76,7 +76,7 @@ graph TD
 - **核心框架**：Python 3.10+ / FastAPI
 - **非同步與併發處理**：
   - 透過 `asyncio` 實作非同步任務引擎，並**支援多使用者並行請求 (Concurrency)**。每個建置任務會被放入獨立的 Task Queue，並透過 UUID 追蹤進度，打破傳統單一 Queue 的阻塞瓶頸。
-- **AI 整合**：整合 OpenAI API，並相容於本地模型，負責系統核心的「自然語言轉藍圖」及「程式碼生成」。
+- **LLM 整合**：使用 `Gemma 4 26B A4B` 本地模型，負責系統核心的「自然語言轉藍圖」及「程式碼生成」。
 - **自動化建置工具**：
   - **Android SDK** & **Gradle**：動態建立專案並執行 APK 編譯。特別配置了 **共用 Gradle Cache (`GRADLE_USER_HOME`)**，避免每個專案重複下載肥大的依賴檔案，大幅提升編譯速度與節省伺服器 (Docker) 磁碟空間。
   - **ktlint**：整合 Kotlin 代碼格式化與語法自動修復。
@@ -95,20 +95,14 @@ graph TD
 
 ## 資訊安全與空間維護 (Security & Stability)
 
-為了確保系統從開發階段到生產環境 (Release) 的安全性與伺服器穩定性，本系統實作了以下防護與空間最佳化機制：
+為了確保系統從開發階段到生產環境的安全性與伺服器穩定性，本系統實作了以下防護與空間最佳化機制：
 
 1. **全自動資源回收機制 (Garbage Collector)**：
-   - **雲端過期清理**：定期掃描 Supabase 資料庫，當發現對話紀錄中的 APK 下載連結已過期，系統會自動呼叫 Storage API 刪除雲端檔案，節省雲端空間。
+   - **雲端過期清理**：定期掃描 Supabase 資料庫，當發現對話紀錄中的 APK 下載連結已過期或是該專案(對話)已經刪除，系統會自動呼叫 Storage API 刪除雲端檔案，節省雲端空間。
    - **本地工作區釋放**：監控本地端 Gradle 工作目錄 (`WORKSPACES_DIR`)。若專案閒置超過 **12 小時**，清道夫服務會自動移除該專案的編譯目錄，防止伺服器硬碟被大量 Gradle Build 檔案塞滿。
    - **暫存原始碼清理**：定期清理 `STATIC_DIR` 中存放超過 **24 小時**的 `.kt` 暫存原始碼。
 2. **環境變數與金鑰隔離**：
    - 嚴格分離前端與後端權限。後端透過 `python-dotenv` 載入具備最高權限的 `SUPABASE_SERVICE_ROLE_KEY` 進行資料處理與管理。
-3. **Release 模式混淆與防護 (ProGuard/R8)**：
-   - 針對 Android Release 版本，特別配置 `proguard-rules.pro` 以保護 `supabase_flutter` 等反射類別，防止代碼反編譯。
-4. **安全的身分驗證機制 (Deep Link)**：
-   - 實作 Deep Link 手動驗證機制，移除平台限制，確保系統可透過 `getSessionFromUrl` 在任意混淆環境下安全攔截登入憑證。
-5. **自動化語法防護與清洗**：
-   - 實作 `code_parser.py` 模組，利用正則表達式自動攔截並清洗 LLM 經常產生的 Compose 語法幻覺與潛在的惡意注入，確保 Gradle 編譯的安全性。
 
 ---
 
