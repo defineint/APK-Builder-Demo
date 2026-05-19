@@ -15,18 +15,51 @@ graph TD
         FlutterUI <--> Auth_Layer
     end
 
-    %% 後端引擎
-    API_Layer -->|發送建置請求/接收進度| ChatRoutes[Chat Routes & Service<br>Async Task Queue / SSE]
-    
+	%% === 後端核心系統 ===
     subgraph Backend [後端引擎 Backend]
-        ChatRoutes --> Orchestrator[Orchestrator Service 編排者<br>自然語言轉 JSON 藍圖]
-        Orchestrator <--> LLM{OpenAI / 本地模型}
-        Orchestrator --> QAParser[QA & Parser 解析與修正<br>正則清洗 / ktlint 自動修復]
-        QAParser --> Builder[APK Builder 建置引擎]
         
-        Builder <-->|純編譯模式/自動修復循環| Gradle[Android SDK & Gradle<br>共用 Cache / ProGuard 防護]
+        ChatRoutes --> Orchestrator[Orchestrator 編排者<br>歷史清洗與反轉 / JSON 藍圖生成]
+        Orchestrator <--> LLM_Orch{OpenAI / 本地模型}
         
-        GC[Cleanup & Storage Service<br>全自動資源回收機制]
+        Orchestrator -->|產出結構化藍圖 Blueprint| APKBuilder[APK Builder 建置總管<br>動態專案環境準備]
+
+        %% QA 測試生成階段
+        APKBuilder --> Step0_QA[0. QA 階段<br>根據藍圖產出 JUnit LogicTest.kt]
+        
+        %% === Phase 1: 邏輯層 ===
+        subgraph Phase1 [Phase 1: 邏輯層 TDD 雙向修正循環]
+            direction TB
+            Logic_LLM[1. Logic 層生成<br>LLM 撰寫 Logic.kt]
+            Logic_Parser[靜態解析與修復<br>Regex 修正幻覺 / ktlint]
+            Logic_Test{Gradle 編譯與<br>JUnit 單元測試}
+            Logic_ErrorExt[錯誤擷取與分析<br>精準提取 Log 與上下文]
+            Logic_FixTest[雙向修正管線<br>自我修正測試代碼]
+            
+            Logic_LLM --> Logic_Parser --> Logic_Test
+            Logic_Test --"① 編譯失敗"--> Logic_ErrorExt -.->|攜帶錯誤重新 Prompt| Logic_LLM
+            Logic_Test --"② 編譯成功, 測試失敗"--> Logic_FixTest -.->|修正測試或邏輯| Logic_LLM
+        end
+        
+        Step0_QA --> Logic_LLM
+
+        %% === Phase 2: UI 層 ===
+        subgraph Phase2 [Phase 2: UI 層生成與打包循環]
+            direction TB
+            UI_LLM[2. UI 層生成<br>LLM 撰寫 MainActivity.kt]
+            UI_Parser[靜態解析與修復<br>Regex 修正幻覺 / ktlint]
+            UI_Build{Gradle Assemble<br>純打包驗證}
+            UI_ErrorExt[錯誤擷取與分析<br>精準提取 Log 與上下文]
+            
+            UI_LLM --> UI_Parser --> UI_Build
+            UI_Build --"① 編譯失敗"--> UI_ErrorExt -.->|攜帶錯誤重新 Prompt| UI_LLM
+        end
+        
+        Logic_Test --"③ 邏輯層全數通過"--> UI_LLM
+        RebuildService -->|寫入舊有 Logic & UI 代碼| UI_Build
+        
+        UI_Build --"打包成功"--> APK_Output[產出 APK 檔案與 Source Code]
+        
+        GC[Cleanup Service<br>非同步全自動資源回收]
     end
 
     %% Supabase 服務
