@@ -8,7 +8,7 @@
 
 ## 2. 系統總體架構 (System Architecture)
 
-[待繪製]
+<img width="1303" height="764" alt="專題架構圖" src="https://github.com/user-attachments/assets/b6363214-b3e9-4511-9b61-1cd1a1848078" />
 
 ---
 
